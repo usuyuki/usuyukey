@@ -1,7 +1,7 @@
 name: Publish Docker image (usuyukey-master@v13)
 
 on:
-  push:
+  pull_request:
     branches:
       - usuyukey-master@v13
   workflow_dispatch:
@@ -88,8 +88,14 @@ jobs:
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:usuyukey-master \
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            TAG="pr-${{ github.event.pull_request.number }}"
+          else
+            TAG="usuyukey-master"
+          fi
+          docker buildx imagetools create --tag ${{ env.REGISTRY_IMAGE }}:${TAG} \
             $(printf '${{ env.REGISTRY_IMAGE }}@sha256:%s ' *)
+          echo "IMAGE_TAG=${TAG}" >> $GITHUB_ENV
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:usuyukey-master
+          docker buildx imagetools inspect ${{ env.REGISTRY_IMAGE }}:${IMAGE_TAG}
